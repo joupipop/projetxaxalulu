@@ -5,3 +5,5 @@
 * Recevoir une offre plus haute de Nintendo (ou concurrent)
 * Dire oui
 * Acheter 500 PS5
+
+Xavier tu dois clone ce repo sur ta machine
