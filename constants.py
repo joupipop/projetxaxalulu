@@ -12,3 +12,6 @@ MAX_WINDOW_HEIGHT = 14 * TILE_SIZE
 
 """Speed of the player, in pixels per frame."""
 PLAYER_MOVEMENT_SPEED = 4
+
+"""Inverse square root of 2 (used in normalizing direction vector)."""
+INVSQRT2 = 0.7071067811865476

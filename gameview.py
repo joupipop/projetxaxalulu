@@ -18,6 +18,8 @@ class GameView(arcade.View):
     player: Player
     player_sprite_list: Final[arcade.SpriteList[arcade.TextureAnimationSprite]]
 
+    crystals: Final[arcade.SpriteList[arcade.TextureAnimationSprite]]
+
     grounds: arcade.SpriteList[arcade.Sprite]
     walls: arcade.SpriteList[arcade.Sprite]
 
@@ -40,6 +42,11 @@ class GameView(arcade.View):
         self.player = Player(grid_to_pixels(2), grid_to_pixels(2))
         self.player_sprite_list = arcade.SpriteList()
         self.player_sprite_list.append(self.player)
+
+        self.crystals = arcade.SpriteList()
+        crystal_coord_list = [(5, 2), (6, 3), (3, 5)]
+        for coord in crystal_coord_list:
+            self.crystals.append(Entity(grid_to_pixels(coord[0]), grid_to_pixels(coord[1]), 0, 0, 0, CRYSTAL_ANIMATION))
 
         self.grounds = arcade.SpriteList(use_spatial_hash=True)
         self.walls = arcade.SpriteList(use_spatial_hash=True)
@@ -79,7 +86,13 @@ class GameView(arcade.View):
         with self.camera.activate():
             self.grounds.draw()
             self.walls.draw()
+            self.crystals.draw()
             self.player_sprite_list.draw()
+            self.player_sprite_list.draw_hit_boxes()
+            self.crystals.draw_hit_boxes()
+            self.walls.draw_hit_boxes()
+
+
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         """Called when the user presses a key on the keyboard."""
@@ -110,10 +123,14 @@ class GameView(arcade.View):
 
         This is where in-world time "advances", or "ticks".
         """
-        self.player.change_x = (self.pressed_keys[3] - self.pressed_keys[2]) * self.player.speed
-        self.player.change_y = (self.pressed_keys[0] - self.pressed_keys[1]) * self.player.speed
 
+        self.player.input(self.pressed_keys)
         self.player.move()
+        for crystal in self.crystals:
+            crystal.move()
+
+        for sprite in arcade.check_for_collision_with_list(self.player, self.crystals):
+            sprite.remove_from_sprite_lists()
 
         self.physics_engine.update()
         self.camera.position = self.player.position
