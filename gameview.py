@@ -5,9 +5,9 @@ import arcade
 from constants import *
 from textures import *
 from entities import *
+from map import Map, GridCell, load_map_from_file, grid_to_pixels
 
-def grid_to_pixels(i: int) -> int:
-    return i * TILE_SIZE + (TILE_SIZE // 2)
+
 
 class GameView(arcade.View):
     """Main in-game view."""
@@ -19,6 +19,8 @@ class GameView(arcade.View):
     player_sprite_list: Final[arcade.SpriteList[arcade.TextureAnimationSprite]]
 
     crystals: Final[arcade.SpriteList[arcade.TextureAnimationSprite]]
+
+    spinners: Final[arcade.SpriteList[arcade.TextureAnimationSprite]]
 
     grounds: arcade.SpriteList[arcade.Sprite]
     walls: arcade.SpriteList[arcade.Sprite]
@@ -35,39 +37,62 @@ class GameView(arcade.View):
         # Choose a nice comfy background color
         self.background_color = arcade.csscolor.CORNFLOWER_BLUE
 
+        map: Map = load_map_from_file("maps/map1.txt")
+
         # Setup our game
-        self.world_width = 40 * TILE_SIZE
-        self.world_height = 20 * TILE_SIZE
+        self.world_width = map.width * TILE_SIZE
+        self.world_height = map.height * TILE_SIZE
 
-        self.player = Player(grid_to_pixels(2), grid_to_pixels(2))
         self.player_sprite_list = arcade.SpriteList()
-        self.player_sprite_list.append(self.player)
-
         self.crystals = arcade.SpriteList()
-        crystal_coord_list = [(5, 2), (6, 3), (3, 5)]
-        for coord in crystal_coord_list:
-            self.crystals.append(Entity(grid_to_pixels(coord[0]), grid_to_pixels(coord[1]), 0, 0, 0, CRYSTAL_ANIMATION))
-
+        self.spinners = arcade.SpriteList()
         self.grounds = arcade.SpriteList(use_spatial_hash=True)
         self.walls = arcade.SpriteList(use_spatial_hash=True)
 
         self.pressed_keys = [False, False, False, False]
 
-        """create ground"""
-        for x in range(0, 40):
-            for y in range(0, 20):
-                self.grounds.append(arcade.Sprite(
-                    TEXTURE_GRASS,
-                    scale=SCALE, center_x=grid_to_pixels(x), center_y=grid_to_pixels(y)
-                ))
+        for cell_y in range(map.height):
+            for cell_x in range(map.width):
+                cell = map.get(cell_x, cell_y)
+                match cell:
+                    case GridCell.GRASS:
+                        self.grounds.append(arcade.Sprite(
+                            TEXTURE_GRASS,
+                            scale=SCALE, center_x=grid_to_pixels(cell_x), center_y=grid_to_pixels(cell_y)
+                        ))
+                    case GridCell.BUSH:
+                        self.grounds.append(arcade.Sprite(
+                            TEXTURE_GRASS,
+                            scale=SCALE, center_x=grid_to_pixels(cell_x), center_y=grid_to_pixels(cell_y)
+                        ))
+                        self.walls.append(arcade.Sprite(
+                            TEXTURE_BUSH,
+                            scale=SCALE, center_x=grid_to_pixels(cell_x), center_y=grid_to_pixels(cell_y)
+                        ))
+                    case GridCell.CRYSTAL:
+                        self.grounds.append(arcade.Sprite(
+                            TEXTURE_GRASS,
+                            scale=SCALE, center_x=grid_to_pixels(cell_x), center_y=grid_to_pixels(cell_y)
+                        ))
+                        self.crystals.append(Entity(grid_to_pixels(cell_x), grid_to_pixels(cell_y), Vector2D(0, -1), 0, CRYSTAL_ANIMATION))
+                    case GridCell.VERTICAL_SPINNER:
+                        self.grounds.append(arcade.Sprite(
+                            TEXTURE_GRASS,
+                            scale=SCALE, center_x=grid_to_pixels(cell_x), center_y=grid_to_pixels(cell_y)
+                        ))
 
-        """add bushes"""
-        coord_list: list[tuple[int, int]] = [(3, 6), (7, 2), (2, 10), (3, 8)]
-        for coord in coord_list:
-            self.walls.append(arcade.Sprite(
-                TEXTURE_BUSH,
-                scale=SCALE, center_x=grid_to_pixels(coord[0]), center_y=grid_to_pixels(coord[1])
-            ))
+                        self.spinners.append(Spinner(grid_to_pixels(cell_x), grid_to_pixels(cell_y), Vector2D(0, 1), map))
+                    case GridCell.HORIZONTAL_SPINNER:
+                        self.grounds.append(arcade.Sprite(
+                            TEXTURE_GRASS,
+                            scale=SCALE, center_x=grid_to_pixels(cell_x), center_y=grid_to_pixels(cell_y)
+                        ))
+                        self.spinners.append(Spinner(grid_to_pixels(cell_x), grid_to_pixels(cell_y), Vector2D(1, 0), map))
+
+        self.player = Player(grid_to_pixels(map.player_start_x), grid_to_pixels(map.player_start_y))
+        self.player_sprite_list.append(self.player)            # self.player_sprite_list.draw_hit_boxes()
+            # self.crystals.draw_hit_boxes()
+            # self.walls.draw_hit_boxes()
 
         self.physics_engine = arcade.PhysicsEngineSimple(self.player, self.walls)
         self.camera = arcade.camera.Camera2D()
@@ -87,10 +112,11 @@ class GameView(arcade.View):
             self.grounds.draw()
             self.walls.draw()
             self.crystals.draw()
+            self.spinners.draw()
             self.player_sprite_list.draw()
-            self.player_sprite_list.draw_hit_boxes()
-            self.crystals.draw_hit_boxes()
-            self.walls.draw_hit_boxes()
+            #self.player_sprite_list.draw_hit_boxes()
+            #self.crystals.draw_hit_boxes()
+            #self.walls.draw_hit_boxes()
 
 
 
@@ -105,6 +131,9 @@ class GameView(arcade.View):
                 self.pressed_keys[2] = True
             case arcade.key.RIGHT | arcade.key.D:
                 self.pressed_keys[3] = True
+            case arcade.key.ESCAPE:
+                game_view = GameView()
+                self.window.show_view(game_view)
 
     def on_key_release(self, symbol: int, modifiers: int) -> None:
         """Called when the user releases a key on the keyboard."""
@@ -128,9 +157,23 @@ class GameView(arcade.View):
         self.player.move()
         for crystal in self.crystals:
             crystal.move()
+        for spinner in self.spinners:
+            spinner.move()
 
         for sprite in arcade.check_for_collision_with_list(self.player, self.crystals):
             sprite.remove_from_sprite_lists()
 
+        if arcade.check_for_collision_with_list(self.player, self.spinners):
+            game_view = GameView()
+            self.window.show_view(game_view)
+            print("dead")
+
+
         self.physics_engine.update()
-        self.camera.position = self.player.position
+        new_camera_position: list[int | float] = list(self.camera.position)
+        if self.player.position[0] > self.window.width/2-2:
+            new_camera_position[0] = self.player.position[0]
+        if self.player.position[1] > self.window.height/2-5:
+            new_camera_position[1] = self.player.position[1]
+
+        self.camera.position = tuple(new_camera_position)
