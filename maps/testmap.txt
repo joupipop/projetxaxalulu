@@ -1,0 +1,19 @@
+width: 30
+height: 15
+---
+                   xxxxxxxxxxx
+                   xxxxxxxxxxx
+           x       xxxxxxxxxxx
+    B      x       xxxxxxxxxxx
+           x       xxxxxxxxxxx
+    P      x       xxxxxxxxxxx
+                   xxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+---

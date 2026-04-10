@@ -3,17 +3,17 @@ height: 15
 ---
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 x  *               S     x             x
-x                        x    *   *    x
+x   v    O               x    *   *    x
 x                      * x             x
-x         s        xxxxxxx            sx
-x     xxx *   xx                       x
-x                            xxx       x
+x                  xxxxxxx        O   sx
+x     xxx *   xx        v              x
+x            B               xxx       x
 x            xxxxxxxxxx        x       x
-x         *                    x   *   x
+x         *     O              x   *   x
 x      S              S     *  x       x
-x  *            *                      x
-x                                      x
-x     xx     s        xs               x
-x  P      *           x       *        x
+x  *  ^         *                      x
+x                  O       v      O    x
+x P   xx     s        xs               x
+x         *           x       *        x
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ---

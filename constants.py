@@ -7,11 +7,12 @@ SCALE = 2.0
 """After scaling, the size of a tile."""
 TILE_SIZE = 32
 
-MAX_WINDOW_WIDTH = 14 * TILE_SIZE
-MAX_WINDOW_HEIGHT = 14 * TILE_SIZE
+MAX_WINDOW_WIDTH = 20 * TILE_SIZE
+MAX_WINDOW_HEIGHT = 20 * TILE_SIZE
 
 """Speed of the player, in pixels per frame."""
-PLAYER_MOVEMENT_SPEED = 4
+PLAYER_MOVEMENT_SPEED = 2
 
-"""Inverse square root of 2 (used in normalizing direction vector)."""
-INVSQRT2 = 0.7071067811865476
+BAT_RANGE = 4
+
+BLOB_RANGE = 3

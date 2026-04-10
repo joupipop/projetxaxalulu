@@ -1,6 +1,11 @@
 from typing import Final
 import arcade
 
+arcade.load_font(":resources:fonts/ttf/Kenney/Kenney_Rocket.ttf")
+arcade.load_font(":resources:fonts/ttf/Kenney/Kenney_Mini.ttf")
+
+
+
 ORIG_TILE_SIZE = (16, 16)
 
 def _load_grid(
@@ -63,12 +68,54 @@ _overworld_grid = _load_grid("assets/Top_Down_Adventure_Pack_v.1.0/Overworld_Til
 
 TEXTURE_GRASS: Final[arcade.Texture] = _overworld_grid[18*1 + 6]
 TEXTURE_BUSH: Final[arcade.Texture] = _overworld_grid[18*3 + 5]
+TEXTURE_HOLE: Final[arcade.Texture] = _overworld_grid[18*4 + 8]
 
+ANIMATION_PLAYER_IDLE_UP: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_idle_up_anim_strip_6.png", 6)
 ANIMATION_PLAYER_IDLE_DOWN: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_idle_down_anim_strip_6.png", 6)
+ANIMATION_PLAYER_IDLE_LEFT: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_idle_left_anim_strip_6.png", 6)
+ANIMATION_PLAYER_IDLE_RIGHT: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_idle_right_anim_strip_6.png", 6)
+
+ANIMATION_PLAYER_RUN_UP: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_run_up_anim_strip_6.png", 6)
+ANIMATION_PLAYER_RUN_DOWN: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_run_down_anim_strip_6.png", 6)
+ANIMATION_PLAYER_RUN_LEFT: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_run_left_anim_strip_6.png", 6)
+ANIMATION_PLAYER_RUN_RIGHT: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_run_right_anim_strip_6.png", 6)
+
+ANIMATION_SWORD_UP: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_attack48_up_anim_strip_6.png", 6, 50, (48, 48))
+ANIMATION_SWORD_DOWN: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_attack48_down_anim_strip_6.png", 6, 50, (48, 48))
+ANIMATION_SWORD_LEFT: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_attack48_left_anim_strip_6.png", 6, 50, (48, 48))
+ANIMATION_SWORD_RIGHT: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_attack48_right_anim_strip_6.png", 6, 50, (48, 48))
+
+SWORD_ICON: Final[arcade.Texture] = _load_grid("assets/Top_Down_Adventure_Pack_v.1.0/Overworld_Tileset.png", 18, 13)[1]
 
 CRYSTAL_ANIMATION: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Props_Items_(animated)/crystal_item_anim_strip_6.png", 6)
 
 SPINNER_ANIMATION: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Enemies_Sprites/Spinner_Sprites/spinner_run_attack_anim_all_dir_strip_8.png", 3)
+
+BOOMERANG_ANIMATION: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/provided/boomerang-sheet.png", 8, 25)
+
+BAT_ANIMATION: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Enemies_Sprites/Pinkbat_Sprites/pinkbat_idle_left_anim_strip_5.png" , 3)
+
+BLOB_ANIMATION:  Final[arcade.TextureAnimation] = \
+    _load_animation_strip("/home/lukan/EPFL/BA2/projets/projetxaxalulu/assets/Top_Down_Adventure_Pack_v.1.0/Enemies_Sprites/Pinkslime_Sprites/pinkslime_run_anim_anim_all_dir_strip_6.png" , 6)
+
+TEXTURE_SWITCH_OPEN: Final[arcade.Texture] = _load_grid("assets/added/switch-open.png", 1, 1)[0]
+TEXTURE_SWITCH_CLOSED: Final[arcade.Texture] = _load_grid("assets/added/switch-closed.png", 1, 1)[0]
+
+TEXTURE_GATE_OPEN: Final[arcade.Texture] = _load_grid("assets/Top_Down_Adventure_Pack_v.1.0/Tiles_(animated)/Dungeon/iron_gate_closing_anim_strip_8.png", 8, 2)[8]
+TEXTURE_GATE_CLOSED: Final[arcade.Texture] = _load_grid("assets/Top_Down_Adventure_Pack_v.1.0/Tiles_(animated)/Dungeon/iron_gate_closing_anim_strip_8.png", 8, 2)[12]
