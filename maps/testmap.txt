@@ -1,19 +1,15 @@
-width: 30
-height: 15
+width: 9
+height: 11
 ---
-                   xxxxxxxxxxx
-                   xxxxxxxxxxx
-           x       xxxxxxxxxxx
-    B      x       xxxxxxxxxxx
-           x       xxxxxxxxxxx
-    P      x       xxxxxxxxxxx
-                   xxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxx
+x       x
+x       x
+x       x
+x       x
+x xxxx  x
+x       x
+x       x
+xxxxxxx x
+x P   T x
+xxxxxxxxx
 ---

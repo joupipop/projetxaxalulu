@@ -96,11 +96,35 @@ ANIMATION_SWORD_LEFT: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_attack48_left_anim_strip_6.png", 6, 50, (48, 48))
 ANIMATION_SWORD_RIGHT: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_attack48_right_anim_strip_6.png", 6, 50, (48, 48))
+#ANIMATION_SWORD_UP: Final[arcade.TextureAnimation] = \
+#    _load_animation_strip("assets/added/char_fire48_up_anim_strip_6.png", 6, 50, (48, 48))
+#ANIMATION_SWORD_DOWN: Final[arcade.TextureAnimation] = \
+#    _load_animation_strip("assets/added/char_fire48_down_anim_strip_6.png", 6, 50, (48, 48))
+#ANIMATION_SWORD_LEFT: Final[arcade.TextureAnimation] = \
+#    _load_animation_strip("assets/added/char_fire48_left_anim_strip_6.png", 6, 50, (48, 48))
+#ANIMATION_SWORD_RIGHT: Final[arcade.TextureAnimation] = \
+#    _load_animation_strip("assets/added/char_fire48_right_anim_strip_6.png", 6, 50, (48, 48))
 
 SWORD_ICON: Final[arcade.Texture] = _load_grid("assets/Top_Down_Adventure_Pack_v.1.0/Overworld_Tileset.png", 18, 13)[1]
 
 CRYSTAL_ANIMATION: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Props_Items_(animated)/crystal_item_anim_strip_6.png", 6)
+
+SWORD_ITEM_ANIMATION: Final[arcade.TextureAnimation] = \
+_load_animation_strip("assets/added/sword_item_anim_strip_6_16x32.png", 6, tile_size=(16, 32))
+
+BOOMERANG_ITEM_ANIMATION: Final[arcade.TextureAnimation] = \
+_load_animation_strip("assets/added/boomerang_item_anim_strip_6_16x16.png", 6)
+
+
+SCEPTRE_ITEM_ANIMATION: Final[arcade.TextureAnimation] = \
+_load_animation_strip("assets/added/staff_item_anim_strip_6_16x32.png", 6, tile_size=(16, 32))
+ANIMATION_SCEPTRE_DOWN: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/added/char_sceptre48_down_anim_strip_6.png", 6, 50, (48, 48))
+ANIMATION_SCEPTRE_RIGHT: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/added/char_sceptre48_right_anim_strip_6.png", 6, 50, (48, 48))
+ANIMATION_SCEPTRE_LEFT: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/added/char_sceptre48_left_anim_strip_6.png", 6, 50, (48, 48))
 
 SPINNER_ANIMATION: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Enemies_Sprites/Spinner_Sprites/spinner_run_attack_anim_all_dir_strip_8.png", 3)

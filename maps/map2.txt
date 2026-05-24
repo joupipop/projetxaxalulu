@@ -36,10 +36,10 @@ x         s        xxxxxxx            sx
 x     xxx *   xx                       x
 x                            xxx       x
 x^   |  v    xxxxxxxxxx        x       x
-x       ^ *                    x   *   x
+x       ^ *     B              x   *   x
 x      S              S     *  x       x
 x  *       v    *              O       x
-x         |                    O       x
+x   /     |                    O       x
 x     xx     s        xs               x
 x  P      *           x       *        x
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

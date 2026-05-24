@@ -7,7 +7,6 @@ import networkx as nx
 from enum import Enum
 from constants import *
 
-
 def pixels_to_grid(x: int | float) -> int:
     return int((x - (TILE_SIZE // 2)) / TILE_SIZE)
 
@@ -27,11 +26,9 @@ class GridCell(Enum):
     BLOB = 8
     SWITCH = 9
     GATE = 10
-@dataclass(frozen=True)
-class NavMeshNode2:
-    x: float
-    y: float
-
+    SWORD = 11
+    BOOMERANG = 12
+    SCEPTRE = 13
 
 @dataclass(frozen=True)
 class NavMeshNode:
@@ -40,7 +37,6 @@ class NavMeshNode:
 
     k: int
     l: int # intra-cell coordinates of the node
-
 
 class Map:
     width: int
@@ -78,10 +74,9 @@ class Map:
     def y_to_j(self, y: int | float) -> int:
         return self.height - int(y) // TILE_SIZE - 1
 
-    def get(self, i:int, j:int) -> GridCell | None:
-        if 0 <= i < self.width and 0 <= j < self.height:
-            return self.cells[j][i]
-        return None
+    def get(self, i:int, j:int) -> GridCell:
+        assert(0 <= i < self.width and 0 <= j < self.height)
+        return self.cells[j][i]
 
     def initialize_navmesh(self, resolution: int) -> None:
         obstacles: list[GridCell] = [GridCell.BUSH, GridCell.HOLE, GridCell.GATE]
@@ -102,11 +97,11 @@ class Map:
                         to_close_to_bush: bool = False
                         for m in [-1, 0, +1]:
                             for n in [-1, 0, +1]:
-                                if i+n < 0 or j+n >= self.width or j+m < 0 or j+m >= self.height:
+                                if i+n < 0 or i+n >= self.width or j+m < 0 or j+m >= self.height:
                                     continue
                                 if self.cells[j+m][i+n] in obstacles:
                                     distance_node_to_bush: float = arcade.Vec2(node_x-self.i_to_x(i+n), node_y-self.j_to_y(j+m)).length()
-                                    if distance_node_to_bush < TILE_SIZE:
+                                    if distance_node_to_bush <= TILE_SIZE-0.001: # erreur de floating point
                                         to_close_to_bush = True
                         if to_close_to_bush:
                             continue
@@ -148,28 +143,30 @@ class Map:
 
                                     distance: float = arcade.Vec2(node_x - neighbour_x, node_y - neighbour_y).length()
                                     self.navmesh.add_edge(node, neighbour, weight=distance)
-    def calculate_path(self, start: arcade.Vec2, end: arcade.Vec2) -> list[arcade.Vec2]:
 
+    def calculate_path(self, start: arcade.Vec2, end: arcade.Vec2) -> list[arcade.Vec2]:
         path: list[arcade.Vec2] = []
         # calculate starting navmesh node (in same cell as start but closest to end)
         start_cell_center_node: NavMeshNode = NavMeshNode(self.x_to_i(start.x), self.y_to_j(start.y), self.resolution//2, self.resolution//2)
         if start_cell_center_node not in self.navmesh.nodes:
-            print("no path", start)
-            return path
+            return []
         best_node = start_cell_center_node
 
         for node in nx.neighbors(self.navmesh, start_cell_center_node):
             if end.distance((self.navmesh.nodes[node]["x"], self.navmesh.nodes[node]["y"])) < end.distance((self.navmesh.nodes[best_node]["x"], self.navmesh.nodes[best_node]["y"])):
                 best_node = node
-        start_node = start_cell_center_node
+        start_node = best_node
         # calculate end navmesh node (center of end cell is enough)
 
         end_node: NavMeshNode = NavMeshNode(self.x_to_i(end.x), self.y_to_j(end.y), self.resolution//2, self.resolution//2)
         #print(self.navmesh.nodes[end_node]["x"], self.navmesh.nodes[end_node]["y"])
 
-        if start_node not in self.navmesh.nodes or end_node not in self.navmesh.nodes:
-            return path
-        node_path: list[NavMeshNode] = nx.dijkstra_path(self.navmesh, start_node, end_node)
+        if end_node not in self.navmesh.nodes:
+            return []
+        try:
+            node_path: list[NavMeshNode] = nx.dijkstra_path(self.navmesh, start_node, end_node)
+        except nx.exception.NetworkXNoPath:
+            return []
         for node in node_path:
             path.append(arcade.Vec2(self.navmesh.nodes[node]["x"], self.navmesh.nodes[node]["y"]))
         path.append(end)
@@ -183,89 +180,112 @@ def load_map_from_string(map_text: str) -> Map:
     player_start_x: int
     player_start_y: int
 
-    switches: list[dict] = [{}]
-    gates: list[dict] = [{}]
+    switches: list[dict] = []
+    gates: list[dict] = []
 
-    try:
-        configuration_end_index = map_text.find("---") - 1
+    configuration_end_index = map_text.find("---") - 1
 
-        # check if find method returned -1 (substring not found)
-        if configuration_end_index < 0:
-            raise InvalidMapFileException("Delimiter \"---\" not found.")
+    # check if find method returned -1 (substring not found)
+    if configuration_end_index < 0:
+        raise InvalidMapFileException("Delimiter \"---\" not found.")
 
-        configuration = map_text[0:configuration_end_index]
+    configuration = map_text[0:configuration_end_index]
 
-        world_start_index = configuration_end_index + 5
-        world_end_index = map_text.find("---", world_start_index)
+    world_start_index = configuration_end_index + 5
+    world_end_index = map_text.find("---", world_start_index)
 
-        # check if find method returned -1 (substring not found)
-        if world_end_index < 0:
-            raise InvalidMapFileException("Delimiter \"---\" not found.")
+    # check if find method returned -1 (substring not found)
+    if world_end_index < 0:
+        raise InvalidMapFileException("Delimiter \"---\" not found.")
 
-        world = map_text[world_start_index:world_end_index]
+    world = map_text[world_start_index:world_end_index]
 
-        data = yaml.load(configuration, Loader=yaml.SafeLoader)
-        for key in data:
-            value = data[key]
-            match key:
-                case "width":
-                    width = int(value)
-                case "height":
-                    height = int(value)
-                case "switches":
-                    switches = data[key]
-                case "gates":
-                    gates = data[key]
-                case _:
-                    raise InvalidMapFileException(f"Unknown configuration option \"{key}\".")
-        i_index = 0
-        j_index = 0
-        # coordinate system centered in top left corner
-        for cell in world:
-            match cell:
-                case ' ':
-                    cells[j_index].append(GridCell.GRASS)
-                case 'x':
-                    cells[j_index].append(GridCell.BUSH)
-                case '*':
-                    cells[j_index].append(GridCell.CRYSTAL)
-                case 's':
-                    cells[j_index].append(GridCell.HORIZONTAL_SPINNER)
-                case 'S':
-                    cells[j_index].append(GridCell.VERTICAL_SPINNER)
-                case 'P':
-                    cells[j_index].append(GridCell.GRASS)
-                    player_start_x = i_index
-                    player_start_y = height - j_index
-                case 'O':
-                    cells[j_index].append(GridCell.HOLE)
-                case 'v':
-                    cells[j_index].append(GridCell.BAT)
-                case 'B':
-                    cells[j_index].append(GridCell.BLOB)
-                case '^':
-                    cells[j_index].append(GridCell.SWITCH)
-                case '|':
-                    cells[j_index].append(GridCell.GATE)
+    data = yaml.load(configuration, Loader=yaml.SafeLoader)
+    if "width" not in data or "height" not in data:
+        raise InvalidMapFileException(f"Missing necessary option width or height (or both!).")
+    for key in data:
+        value = data[key]
+        match key:
+            case "width":
+                width = int(value)
+            case "height":
+                height = int(value)
+            case "switches":
+                switches = data[key]
+            case "gates":
+                gates = data[key]
+            case _:
+                raise InvalidMapFileException(f"Unknown configuration option \"{key}\".")
 
-                case '\n':
-                    cells.append([])
-                    j_index += 1
-                    # check if width is consistent with configuration
-                    if i_index != width:
-                        raise InvalidMapFileException(f"Incorrect map width. {i_index} != {width}")
+    if 'P' not in world:
+        raise InvalidMapFileException(f"Player starting position not set.")
 
-                    i_index = 0
-                    continue
-                case _:
-                    raise InvalidMapFileException(f"Unknown cell \"{cell}\".")
-            i_index += 1
+    switch_counter: int = 0
+    gate_counter: int = 0 # check that switches defined in config are in map and inversely
 
-        final_map = Map(width, height, tuple(map(tuple, cells)), player_start_x, player_start_y, switches, gates)
-        return final_map
-    except InvalidMapFileException as e:
-        print(f"Map file error: {e.message}")
-        exit()
+    i_index = 0
+    j_index = 0
+    # coordinate system centered in top left corner
+    for cell in world:
+        x_index = i_index
+        y_index = height - j_index - 1
+
+        match cell:
+            case ' ':
+                cells[j_index].append(GridCell.GRASS)
+            case 'x':
+                cells[j_index].append(GridCell.BUSH)
+            case '*':
+                cells[j_index].append(GridCell.CRYSTAL)
+            case 's':
+                cells[j_index].append(GridCell.HORIZONTAL_SPINNER)
+            case 'S':
+                cells[j_index].append(GridCell.VERTICAL_SPINNER)
+            case 'P':
+                cells[j_index].append(GridCell.GRASS)
+                player_start_x = x_index
+                player_start_y = y_index
+            case 'O':
+                cells[j_index].append(GridCell.HOLE)
+            case 'v':
+                cells[j_index].append(GridCell.BAT)
+            case 'B':
+                cells[j_index].append(GridCell.BLOB)
+            case '^':
+                cells[j_index].append(GridCell.SWITCH)
+                switch_counter += 1
+            case '|':
+                cells[j_index].append(GridCell.GATE)
+                gate_counter += 1
+            case 'T':
+                cells[j_index].append(GridCell.SWORD)
+            case 'V':
+                cells[j_index].append(GridCell.BOOMERANG)
+            case '/':
+                cells[j_index].append(GridCell.SCEPTRE)
+
+            case '\n':
+                cells.append([])
+                j_index += 1
+                # check if width is consistent with configuration
+                if i_index != width:
+                    raise InvalidMapFileException(f"Incorrect map width. {i_index} != {width}")
+
+                i_index = 0
+                continue
+            case _:
+                raise InvalidMapFileException(f"Unknown cell \"{cell}\".")
+        i_index += 1
+    if j_index != height:
+        raise InvalidMapFileException(f"Incorrect map height. {j_index} != {height}")
+    if switch_counter != len(switches):
+        raise InvalidMapFileException(f"Switch defined only in configuration or only in map.")
+    if gate_counter != len(gates):
+        raise InvalidMapFileException(f"Gate defined only in configuration or only in map.")
+    cells.remove([]) # added at last newline
+    final_map = Map(width, height, tuple(map(tuple, cells)), player_start_x, player_start_y, switches, gates)
+    return final_map
+
 
 
 def load_map_from_file(file_path: str) -> Map:

@@ -1,0 +1,39 @@
+width: 26
+height: 19
+switches:
+  - id: first
+    x: 1
+    y: 1
+    # this switch is off when the game starts (no 'state')
+  - id: second
+    x: 1
+    y: 5
+gates:
+  - x: 3
+    y: 6
+    # open the gate iff the switch 'first' is on *and* the switch 'second' is *not* on
+    open_if:
+      and:
+        - switch_is_on: first
+        - switch_is_on: second
+---
+xxxxxxxxxxxxxxxxxxxxxxxxxx
+x                        x
+x      B             ****x
+x          v  v      ****x
+x          v  v      ****x
+x B  x     v  v      ****x
+x              B         x
+xxxxxSxxxxxxxxxxxxxxxxxxxx
+x     x   B   x          x
+x */*         x          x
+x     x   vv  x   vvvvv  x
+x    xx   x   x   B   B  x
+xxx|xxx   x   x          x
+x^       sx              x
+xxxxxxxxxxxxxxxxxxxxxxxx x
+x              S         x
+x  P    B  T       V    Bx
+x^                       x
+xxxxxxxxxxxxxxxxxxxxxxxxxx
+---

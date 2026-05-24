@@ -1,3 +1,5 @@
+from py import path
+from dataclasses import dataclass
 from typing import Final
 import arcade
 import math
@@ -8,11 +10,9 @@ from textures import *
 from map import Map, GridCell
 
 class Entity(arcade.TextureAnimationSprite):
-    speed: float # in pixels per frame
     direction: arcade.Vec2
-    random_tick_range: tuple[int, int]
-    tick_counter: int
-    tick_limit: int
+    __speed: Final[int | float] # in pixels per frame
+    id: str | None
     @property
     def center(self) -> arcade.Vec2:
         return arcade.Vec2(self.center_x, self.center_y)
@@ -21,53 +21,50 @@ class Entity(arcade.TextureAnimationSprite):
         self.center_x = other.x
         self.center_y = other.y
 
-    def __init__(self, start_x: int | float, start_y: int | float, direction: arcade.Vec2, speed: int | float, sprite_texture: arcade.TextureAnimation) -> None:
-        super().__init__(start_x, start_y, SCALE, sprite_texture)
+    def __init__(self, start_x: int | float, start_y: int | float, direction: arcade.Vec2, speed: int | float, animation: arcade.TextureAnimation, id: str | None = None) -> None:
+        super().__init__(start_x, start_y, SCALE, animation)
         self.direction = direction
-        self.speed = speed
+        self.__speed = speed
 
-        self.random_tick_range = (1200, 1800) # 20 to 30 secs
-        self.tick_counter = 0
-        self.tick_limit = random.randint(self.random_tick_range[0], self.random_tick_range[1])
-
+        self.__random_tick_range = (1200, 1800) # 20 to 30 secs
+        self.__tick_counter = 0
+        self.__tick_limit = random.randint(self.__random_tick_range[0], self.__random_tick_range[1])
+        self.id = id
     def move(self) -> None:
-        self.change_x = self.direction.x * self.speed
-        self.change_y = self.direction.y * self.speed
+        self.change_x = self.direction.x * self.__speed
+        self.change_y = self.direction.y * self.__speed
         self.center = self.center + arcade.Vec2(self.change_x, self.change_y)
         self.update_animation()
 
-        self.tick_counter += 1
-        if self.tick_counter > self.tick_limit:
-            self.tick_counter = 0
-            self.tick_limit = random.randint(self.random_tick_range[0], self.random_tick_range[1])
-    def random_tick(self) -> bool:
-        return self.tick_counter == self.tick_limit
-
 class Player(Entity):
-    facing_direction: arcade.Vec2
-    previous_direction: arcade.Vec2
     crystal_count: int
+    facing_direction: arcade.Vec2
+    __previous_direction: arcade.Vec2
     def __init__(self, start_x: int, start_y: int) -> None:
         super().__init__(start_x, start_y, arcade.Vec2(0, -1), PLAYER_MOVEMENT_SPEED, ANIMATION_PLAYER_IDLE_DOWN)
-        self.facing_direction = arcade.Vec2(0, -1)
-        self.previous_direction = arcade.Vec2(0, -1)
         self.crystal_count = 0
+        self.facing_direction = arcade.Vec2(0, -1)
+        self.__previous_direction = arcade.Vec2(0, -1)
 
     def input(self, pressed_keys: list[bool]) -> None:
         self.direction = arcade.Vec2(pressed_keys[3] - pressed_keys[2], pressed_keys[0] - pressed_keys[1])
 
     def move(self) -> None:
         animation_set: list[arcade.TextureAnimation]
-        super().move()
+        # dont use super().move() because physic engine does it already
+        self.change_x = self.direction.x * PLAYER_MOVEMENT_SPEED
+        self.change_y = self.direction.y * PLAYER_MOVEMENT_SPEED
+
+        self.update_animation()
 
         if self.direction != arcade.Vec2(0, 0):
             if self.direction.x == 0 or self.direction.y == 0:
                 self.facing_direction = arcade.Vec2(self.direction.x, self.direction.y)
             else:
                 self.facing_direction = arcade.Vec2(self.direction.x, 0)
-        if self.previous_direction == self.direction:
+        if self.__previous_direction == self.direction:
             return
-        self.previous_direction = arcade.Vec2(self.direction.x, self.direction.y)
+        self.__previous_direction = arcade.Vec2(self.direction.x, self.direction.y)
         if self.direction == arcade.Vec2(0, 0):
             animation_set = [ANIMATION_PLAYER_IDLE_UP, ANIMATION_PLAYER_IDLE_DOWN, ANIMATION_PLAYER_IDLE_LEFT, ANIMATION_PLAYER_IDLE_RIGHT]
         else:
@@ -81,194 +78,231 @@ class Player(Entity):
         if self.facing_direction == arcade.Vec2(1, 0):
             self.animation = animation_set[3]
 
-class Spinner(Entity):
-    start_boundary_x: int
-    start_boundary_y: int
-    end_boundary_x: int
-    end_boundary_y: int # works for both horizontal and vertical spinners
+class Monster(Entity):
+    bottom_left_boundary: Final[arcade.Vec2]
+    top_right_boundary: Final[arcade.Vec2]
+    _target: arcade.Vec2
+    _is_stunned: bool
+    _stun_timer: int
+    draw_position: Final[int]
+
+    def __init__(self, start_x: int, start_y: int, bottom_left_boundary: arcade.Vec2, top_right_boundary: arcade.Vec2, speed: int | float, animation: arcade.TextureAnimation, draw_position: int = 0) -> None:
+        super().__init__(start_x, start_y, arcade.Vec2(0, -1), speed, animation)
+        self.bottom_left_boundary = bottom_left_boundary
+        self.top_right_boundary = top_right_boundary
+        self._target = bottom_left_boundary
+        self._is_stunned = False
+        self._stun_timer = 0
+        self.draw_position = draw_position
+    @property
+    def target(self) -> arcade.Vec2: # used in debug mode
+        return self._target
+    def reached_target(self, distance: int | float = 5) -> bool:
+        return (self.center-self._target).length() <= distance
+
+    def move(self) -> None:
+        if self._is_stunned:
+            self.stunned_move()
+            return
+        self.direction = (self._target - self.center).normalize()
+        super().move()
 
 
+    def stun(self, origin: arcade.Vec2) -> None:
+        self.direction = (self.center - origin).normalize()
+        self._is_stunned = True
+
+    def stunned_move(self) -> None:
+        if self._stun_timer < 10: # knockback portion
+            self.change_x = self.direction.x * STUN_KNOCKBACK_SPEED
+            self.change_y = self.direction.y * STUN_KNOCKBACK_SPEED
+            self.center = self.center + arcade.Vec2(self.change_x, self.change_y)
+
+        if self._stun_timer >= 150:
+            self._is_stunned = False
+            self._stun_timer = 0
+
+        self._stun_timer += 1
+        self.time = 0
+
+class Bat(Monster):
+    def __init__(self, start_x: int, start_y: int) -> None:
+        bottom_left_boundary = arcade.Vec2(start_x - BAT_RANGE * TILE_SIZE + TILE_SIZE//2,
+                                           start_y - BAT_RANGE * TILE_SIZE + TILE_SIZE//2)
+        top_right_boundary = arcade.Vec2(start_x + BAT_RANGE * TILE_SIZE - TILE_SIZE//2,
+                                         start_y + BAT_RANGE * TILE_SIZE - TILE_SIZE//2)
+
+        super().__init__(start_x, start_y, bottom_left_boundary, top_right_boundary, BAT_SPEED, BAT_ANIMATION, 2)
+
+        self._target = arcade.Vec2(random.randint(int(self.bottom_left_boundary.x), int(self.top_right_boundary.x)),
+                                      random.randint(int(self.bottom_left_boundary.y), int(self.top_right_boundary.y)))
+
+    def move(self) -> None:
+        if self.reached_target():
+            self._target = arcade.Vec2(random.randint(int(self.bottom_left_boundary.x), int(self.top_right_boundary.x)),
+                                      random.randint(int(self.bottom_left_boundary.y), int(self.top_right_boundary.y)))
+        super().move()
+
+class Spinner(Monster):
     def __init__(self, start_x: int, start_y: int, direction: arcade.Vec2, map: Map) -> None:
-        super().__init__(start_x, start_y, direction, 3, SPINNER_ANIMATION)
-        self.initialise(map)
-
-    def initialise(self, map: Map) -> None:
         search_index: int = 0
         next_cell_coords: list = [0, 0]
         next_cell: GridCell | None = GridCell.GRASS
-        while next_cell != GridCell.BUSH:
+        while next_cell != GridCell.BUSH and next_cell != None:
             search_index += 1
-            next_cell_coords = [map.x_to_i(self.center_x) + self.direction.x * search_index, map.y_to_j(self.center_y) - self.direction.y * search_index]
+            next_cell_coords = [map.x_to_i(start_x) + direction.x * search_index, map.y_to_j(start_y) - direction.y * search_index]
             next_cell = map.get(next_cell_coords[0], next_cell_coords[1])
 
-        self.end_boundary_x = map.i_to_x(next_cell_coords[0] - self.direction.x)
-        self.end_boundary_y = map.j_to_y(next_cell_coords[1] + self.direction.y) # positive y direction means negative j direction
-
+        top_right_boundary: arcade.Vec2 = arcade.Vec2(map.i_to_x(next_cell_coords[0] - direction.x),
+                                                      map.j_to_y(next_cell_coords[1] + direction.y)) # positive y direction means negative j direction
         search_index: int = 0
         next_cell_coords: list = [0, 0]
         next_cell: GridCell | None = GridCell.GRASS
         while next_cell != GridCell.BUSH:
             search_index -= 1
-            next_cell_coords = [map.x_to_i(self.center_x) + self.direction.x * search_index, map.y_to_j(self.center_y) - self.direction.y * search_index]
+            next_cell_coords = [map.x_to_i(start_x) + direction.x * search_index, map.y_to_j(start_y) - direction.y * search_index]
             next_cell = map.get(next_cell_coords[0], next_cell_coords[1])
 
-        self.start_boundary_x = map.i_to_x(next_cell_coords[0] + self.direction.x)
-        self.start_boundary_y = map.j_to_y(next_cell_coords[1] - self.direction.y)
+        bottom_left_boundary: arcade.Vec2 = arcade.Vec2(map.i_to_x(next_cell_coords[0] + direction.x),
+                                                        map.j_to_y(next_cell_coords[1] - direction.y))
 
-
-    def move(self) -> None:
-        spinner_in_bounds: bool = (self.start_boundary_x <= self.center_x <= self.end_boundary_x
-                               and self.start_boundary_y <= self.center_y <= self.end_boundary_y)
-        if spinner_in_bounds:
-            super().move()
-        else:
-            self.direction = arcade.Vec2(-self.direction.x, -self.direction.y)
-            super().move()
-
-class Bat(Entity):
-    start_boundary_x: int
-    start_boundary_y: int
-    end_boundary_x: int
-    end_boundary_y: int
-    target: arcade.Vec2
-
-    def __init__(self, start_x: int, start_y: int) -> None:
-        super().__init__(start_x, start_y, arcade.Vec2(0, -1), 1, BAT_ANIMATION)
-        self.start_boundary_x = start_x - BAT_RANGE * TILE_SIZE - TILE_SIZE//2
-        self.end_boundary_x = start_x + BAT_RANGE * TILE_SIZE - TILE_SIZE//2
-
-        self.start_boundary_y = start_y - BAT_RANGE * TILE_SIZE - TILE_SIZE//2
-        self.end_boundary_y = start_y + BAT_RANGE * TILE_SIZE - TILE_SIZE//2
-
-        self.target = arcade.Vec2(random.randint(self.start_boundary_x, self.end_boundary_x),
-                               random.randint(self.start_boundary_y, self.end_boundary_y))
-        self.direction = (self.target - self.center).normalize()
+        super().__init__(start_x, start_y, bottom_left_boundary, top_right_boundary, SPINNER_SPEED, SPINNER_ANIMATION, 1)
+        self._target = top_right_boundary
 
     def move(self) -> None:
-        if (self.center - self.target).length() <= 16 or self.random_tick():
-            self.target = arcade.Vec2(random.randint(self.start_boundary_x, self.end_boundary_x),
-                                   random.randint(self.start_boundary_y, self.end_boundary_y))
-
-        self.direction = (self.target - self.center).normalize()
+        if self.reached_target():
+            if self.target == self.bottom_left_boundary:
+                self._target = self.top_right_boundary
+            else:
+                self._target = self.bottom_left_boundary
         super().move()
 
-class Blob(Entity):
-    start_boundary_x: int
-    start_boundary_y: int
-    end_boundary_x: int
-    end_boundary_y: int
-    map: Map
-    target: arcade.Vec2
-    path_to_target: list[arcade.Vec2]
-    path_index: int
+    def stunned_move(self) -> None:
+        if self._stun_timer >= 162:
+            self._is_stunned = False
+            self._stun_timer = 0
+
+        self._stun_timer += 1
+        self.time = 0
+
+
+class Blob(Monster):
+    _path_to_target: list[arcade.Vec2] # accessed externally by debug screen
+    __path_index: int
     can_see_player: bool
     last_seen_player: arcade.Vec2
+    __map: Final[Map]
+    __attainable_cells: Final[set[arcade.Vec2]]
 
     def __init__(self, start_x: int, start_y: int, map: Map) -> None:
-        super().__init__(start_x, start_y, arcade.Vec2(0, -1), 0.5, BLOB_ANIMATION)
-        self.start_boundary_x = start_x - BLOB_RANGE * TILE_SIZE - TILE_SIZE//2
-        self.end_boundary_x = start_x + BLOB_RANGE * TILE_SIZE + TILE_SIZE//2
+        bottom_left_boundary = arcade.Vec2(start_x - BLOB_RANGE * TILE_SIZE + TILE_SIZE//2 + 1,
+                                           start_y - BLOB_RANGE * TILE_SIZE + TILE_SIZE//2 + 1)
+        top_right_boundary = arcade.Vec2(start_x + BLOB_RANGE * TILE_SIZE - TILE_SIZE//2 - 1,
+                                         start_y + BLOB_RANGE * TILE_SIZE - TILE_SIZE//2 - 1)
+        # +/- 1's are to make sure x_to_i and y_to_j snap to the correct cell
+        super().__init__(start_x, start_y, bottom_left_boundary, top_right_boundary, 0.5, BLOB_ANIMATION, 0)
+        self.__map = map
+        attainable_cells: set[arcade.Vec2] = set()
+        # calculate all possible targets in boundary
+        for j in range(self.__map.y_to_j(top_right_boundary.y), self.__map.y_to_j(bottom_left_boundary.y)):
+            for i in range(self.__map.x_to_i(bottom_left_boundary.x), self.__map.x_to_i(top_right_boundary.x)):
+                cell: arcade.Vec2 = arcade.Vec2(self.__map.i_to_x(i), self.__map.j_to_y(j))
+                path_to_cell: list[arcade.Vec2] = self.__map.calculate_path(self.center, cell)
+                if path_to_cell != []:
+                    attainable_cells.add(cell)
+        self.__attainable_cells = attainable_cells
 
-        self.start_boundary_y = start_y - BLOB_RANGE * TILE_SIZE - TILE_SIZE//2
-        self.end_boundary_y = start_y + BLOB_RANGE * TILE_SIZE + TILE_SIZE//2
-
-        self.map = map
-
-        self.target = arcade.Vec2(random.randint(self.start_boundary_x, self.end_boundary_x),
-                               random.randint(self.start_boundary_y, self.end_boundary_y))
-
-        self.target = arcade.Vec2(542, 293)
-        self.path_to_target = self.map.calculate_path(self.center, self.target)
-
-        self.path_index = 0
-
+        self.__map = map
+        self._target = random.choice(tuple(self.__attainable_cells))
+        self._path_to_target = [self.center]
+        self.__path_index = 0
         self.can_see_player = False
-
 
     def move(self) -> None:
+        if self.__path_index == len(self._path_to_target) - 1: # reached end
+            final_target: arcade.Vec2 = random.choice(tuple(self.__attainable_cells))
+            self._path_to_target = self.__map.calculate_path(self.center, final_target)
+            self.__path_index = 0
+
         if self.can_see_player:
-            self.target = self.last_seen_player
-        elif (self.center - self.target).length() <= 16 or self.random_tick():
-            self.target = arcade.Vec2(random.randint(self.start_boundary_x, self.end_boundary_x),
-                                   random.randint(self.start_boundary_y, self.end_boundary_y))
-            target_cell: GridCell | None = self.map.get(self.map.x_to_i(self.target.x), self.map.y_to_j(self.target.y))
-            print(target_cell)
-            if target_cell != GridCell.GRASS:
-                self.target = arcade.Vec2(random.randint(self.start_boundary_x, self.end_boundary_x),
-                       random.randint(self.start_boundary_y, self.end_boundary_y))
-            potential_path_to_target = self.map.calculate_path(self.center, self.target)
-            if potential_path_to_target != []: # a path was found
-                self.path_to_target = potential_path_to_target
-            self.path_index = 0
+            potential_path_to_target = self.__map.calculate_path(self.center, self.last_seen_player)
 
-        self.new_path_ending = self.map.calculate_path(self.path_to_target[self.path_index], self.target)
+            if potential_path_to_target != [] and potential_path_to_target[0] != self._path_to_target[0]: # a new path was found
+                self._path_to_target = potential_path_to_target
+                self.__path_index = 0
 
-        if self.path_index == 0 or self.path_index == len(self.path_to_target)-1:
-            #self.path_to_target = self.new_path_ending
-            pass
-        else:
-            self.path_to_target = self.path_to_target[:self.path_index] + self.new_path_ending
+        if self.reached_target(0.4):
+            self.center = self.target
+            self.__path_index += 1
 
-        temp_target = self.path_to_target[self.path_index]
-        if (self.center - temp_target).length() <= 5:
-            self.path_index += 1
-        self.direction = (temp_target - self.center).normalize()
+        self._target = self._path_to_target[self.__path_index]
+
         super().move()
-        self.can_see_player = False
+
 
 class Weapon(Entity):
-    owner: Player
-    state: int
+    owner: Final[Player]
+    _state: int
     hit_something: bool
-    display_name: str
+    display_name: Final[str]
 
-    def __init__(self, owner: Player, speed: int, animation: arcade.TextureAnimation) -> None:
+    def __init__(self, owner: Player, speed: int, animation: arcade.TextureAnimation, display_name: str) -> None:
         super().__init__(owner.center_x, owner.center_y, owner.facing_direction, speed, animation)
         self.owner = owner
-        self.state = 0
+        self._state = 0
         self.hit_something = False
+        self.display_name = display_name
+    @property
+    def active(self) -> bool: # determines from the state if the weapon can kill
+        return self._state != 0
+    @property
+    def visible(self) -> bool:
+        return self._state != 0
+
+    def use(self) -> None:
+        self._state = 1
 
 class Boomerang(Weapon):
-    distance: int
+    __distance: int
+
     def __init__(self, owner: Player) -> None:
-        super().__init__(owner, 6, BOOMERANG_ANIMATION)
-        self.distance = 0
-        self.display_name = "boomerang"
+        super().__init__(owner, BOOMERANG_SPEED, BOOMERANG_ANIMATION, "boomerang")
+        self.__distance = 0
 
     def move(self) -> None:
-        if self.state == 0: # inactive
+        if self._state == 0: # inactive
             self.center = self.owner.center
             self.direction = self.owner.facing_direction
             self.hit_something = False
-        elif self.state == 1: # launching
+        elif self._state == 1: # launching
             if self.hit_something:
                 self.hit_something = False
-                self.state = 2
+                self._state = 2
                 self.move()
                 return
 
             super().move()
-            self.distance += self.speed
-            if self.distance >= 7*TILE_SIZE:
-                self.state = 2
-                self.distance = 0
+            self.__distance += BOOMERANG_SPEED
+            if self.__distance >= 7*TILE_SIZE:
+                self._state = 2
+                self.__distance = 0
 
-        elif self.state == 2: # returning
+        elif self._state == 2: # returning
             distance_from_player = (self.owner.center - self.center).length()
             if distance_from_player <= 16:
-                self.state = 0
-                self.distance = 0
+                self._state = 0
+                self.__distance = 0
                 return
             self.direction = (self.owner.center - self.center).normalize()
             super().move()
+    def reset(self) -> None:
+        self._state = 0
+        self.__distance = 0
 
 class Sword(Weapon):
-    owner: Player
-    state: int
-    previous_direction: arcade.Vec2
+    __previous_direction: arcade.Vec2
     def __init__(self, owner: Player) -> None:
-        super().__init__(owner, 0, ANIMATION_SWORD_UP)
-        self.display_name = "sword"
+        super().__init__(owner, 0, ANIMATION_SWORD_UP, "sword")
     def sync_hit_box_to_texture(self) -> None:
         # reimplement sync hit box to texture to choose appropriate keyframe
         self.texture = self.animation._keyframes[3].texture
@@ -278,12 +312,14 @@ class Sword(Weapon):
             angle=self.angle,
             scale=self._scale,
         )
+        self.texture = self.animation._keyframes[0].texture
+
     def move(self) -> None:
-        if self.state == 0:
-            self.previous_direction = self.direction
+        if self._state == 0: # inactive
+            self.__previous_direction = self.direction
             self.direction = self.owner.facing_direction
             self.center = self.owner.center + 10 * self.direction
-            if self.previous_direction != self.direction:
+            if self.__previous_direction != self.direction:
                 # change texture direction
                 if self.direction == arcade.Vec2(0, 1):
                     self.animation = ANIMATION_SWORD_UP
@@ -294,71 +330,130 @@ class Sword(Weapon):
                 if self.direction == arcade.Vec2(1, 0):
                     self.animation = ANIMATION_SWORD_RIGHT
 
-        elif self.state == 1:
+        elif self._state == 1: # active
             self.update_animation()
             # block player movements
             self.owner.center = self.center - 10 * self.direction
-            if self.time >= 300/1000: #30 ms
-                self.state = 0
+            if self.time >= 300/1000: #300 ms
+                self._state = 0
                 self.time =  0
+
+
+
+class Sceptre(Weapon):
+    _previous_direction: arcade.Vec2
+    __timer: int
+    def __init__(self, owner: Player) -> None:
+        super().__init__(owner, 0, ANIMATION_SWORD_UP, "sceptre")
+
+    def move(self) -> None:
+        if self._state == 0:
+            self.__previous_direction = self.direction
+            self.direction = self.owner.facing_direction
+            self.center = self.owner.center
+            if self.__previous_direction != self.direction:
+                # change texture direction
+                if self.direction == arcade.Vec2(0, 1):
+                    self.animation = ANIMATION_SWORD_UP
+                if self.direction == arcade.Vec2(0, -1):
+                    self.animation = ANIMATION_SCEPTRE_DOWN
+                if self.direction == arcade.Vec2(-1, 0):
+                    self.animation = ANIMATION_SCEPTRE_LEFT
+                if self.direction == arcade.Vec2(1, 0):
+                    self.animation = ANIMATION_SCEPTRE_RIGHT
+        else:
+            self.update_animation()
+            # block player movements
+
+            self.owner.center = self.center
+            if self.time >= 150/1000: # 150 ms
+                self._state = 2
+            if self.time >= 300/1000: #300 ms
+                self._state = 0
+                self.time =  0
+
+
+        if self._state == 2: # use staff (for only one frame)
+            if self.hit_something:
+                self._state = 1
+                self.hit_something = False
+
+    def use(self) -> None:
+        if self.owner.crystal_count < 1:
+            self._state = 0
+        else:
+            self.owner.crystal_count -= 1
+            self._state = 1
+
+    @property
+    def active(self) -> bool:
+        return self._state == 2
 
 class Switch(arcade.Sprite):
     state: bool
-    can_be_used: bool
-    cooldown_timer: int  # otherwise if it gets hit on the boomerangs return i like flips out
-    id: str
+    __can_be_used: bool
+    __cooldown_timer: int  # otherwise if it gets hit on the boomerangs return i like flips out
+    id: Final[str]
 
     def __init__(self, center_x: int | float, center_y: int | float, state: bool, id: str) -> None:
-        super().__init__(TEXTURE_SWITCH_OPEN, SCALE, center_x, center_y)
         self.state = state
-        self.can_be_used = True
-        self.cooldown_timer = 0
+        self.__can_be_used = True
+        self.__cooldown_timer = 0
         self.id = id
+        super().__init__(TEXTURE_SWITCH_CLOSED if self.state else TEXTURE_SWITCH_OPEN, SCALE, center_x, center_y)
+
 
     def tick(self) -> None:
-        if not self.can_be_used:
-            self.cooldown_timer += 1
-        if self.cooldown_timer >= 20:
-            self.can_be_used = True
-            self.cooldown_timer = 0
+        if not self.__can_be_used:
+            self.__cooldown_timer += 1
+        if self.__cooldown_timer >= 20:
+            self.__can_be_used = True
+            self.__cooldown_timer = 0
 
     def toggle(self) -> None:
-        if not self.can_be_used:
+        if not self.__can_be_used:
             return
         self.state = not self.state
-        if self.state == 1:
+        if self.state:
             self.texture = TEXTURE_SWITCH_CLOSED
         else:
             self.texture = TEXTURE_SWITCH_OPEN
-        self.can_be_used = False
+        self.__can_be_used = False
+
+
+
+type Condition = dict[str, list[Condition] | dict[str, str]]
 
 class Gate(arcade.Sprite):
     state: bool
-    open_condition: dict
-    switches: arcade.SpriteList[Switch]
+    __open_condition: Final[Condition]
+    __switches: Final[arcade.SpriteList[Switch]]
 
-    def __init__(self, center_x: int | float, center_y: int | float, open_condition: dict, switches: arcade.SpriteList[Switch]) -> None:
+    def __init__(self, center_x: int | float, center_y: int | float, open_condition: Condition, switches: arcade.SpriteList[Switch]) -> None:
         super().__init__(TEXTURE_GATE_CLOSED, SCALE, center_x, center_y)
-        self.open_condition = open_condition
-        self.switches = switches
-        print(self.open_condition)
+        self.__open_condition = open_condition
+        self.__switches = switches
+        self.state = False
 
-    def evaluate(self, condition: dict) -> bool:
+    def evaluate(self, condition: Condition) -> bool:
         if "and" in condition:
+            assert(isinstance(condition["and"], list))
             return (self.evaluate(condition["and"][0])
                 and self.evaluate(condition["and"][1]))
         elif "or" in condition:
+            assert(isinstance(condition["or"], list))
             return (self.evaluate(condition["or"][0])
                  or self.evaluate(condition["or"][1]))
         elif "not" in condition:
+            assert(isinstance(condition["not"], list))
             return not self.evaluate(condition["not"][0])
         elif "switch_is_on" in condition:
-            for switch in self.switches:
+            for switch in self.__switches:
                 if switch.id == condition["switch_is_on"]:
                     return switch.state
         return False
     def tick(self) -> None:
-        self.state = self.evaluate(self.open_condition)
+        self.state =  self.evaluate(self.__open_condition)
         if self.state:
             self.texture = TEXTURE_GATE_OPEN
         else:
