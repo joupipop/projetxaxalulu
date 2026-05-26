@@ -4,7 +4,6 @@ switches:
   - id: first
     x: 1
     y: 1
-    # this switch is off when the game starts (no 'state')
   - id: second
     x: 1
     y: 5
@@ -26,7 +25,7 @@ x B  x     v  v      ****x
 x              B         x
 xxxxxSxxxxxxxxxxxxxxxxxxxx
 x     x   B   x          x
-x */*         x          x
+x */* x       x          x
 x     x   vv  x   vvvvv  x
 x    xx   x   x   B   B  x
 xxx|xxx   x   x          x

@@ -7,9 +7,6 @@ import networkx as nx
 from enum import Enum
 from constants import *
 
-def pixels_to_grid(x: int | float) -> int:
-    return int((x - (TILE_SIZE // 2)) / TILE_SIZE)
-
 class InvalidMapFileException(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)

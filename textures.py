@@ -72,6 +72,7 @@ TEXTURE_HOLE: Final[arcade.Texture] = _overworld_grid[18*4 + 8]
 
 ANIMATION_PLAYER_IDLE_UP: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_idle_up_anim_strip_6.png", 6)
+
 ANIMATION_PLAYER_IDLE_DOWN: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Char_Sprites/char_idle_down_anim_strip_6.png", 6)
 ANIMATION_PLAYER_IDLE_LEFT: Final[arcade.TextureAnimation] = \
@@ -119,6 +120,9 @@ _load_animation_strip("assets/added/boomerang_item_anim_strip_6_16x16.png", 6)
 
 SCEPTRE_ITEM_ANIMATION: Final[arcade.TextureAnimation] = \
 _load_animation_strip("assets/added/staff_item_anim_strip_6_16x32.png", 6, tile_size=(16, 32))
+
+ANIMATION_SCEPTRE_UP: Final[arcade.TextureAnimation] = \
+    _load_animation_strip("assets/added/char_sceptre48_up_anim_strip_6.png", 6, 50, (48, 48))
 ANIMATION_SCEPTRE_DOWN: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/added/char_sceptre48_down_anim_strip_6.png", 6, 50, (48, 48))
 ANIMATION_SCEPTRE_RIGHT: Final[arcade.TextureAnimation] = \

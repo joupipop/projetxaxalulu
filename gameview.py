@@ -60,7 +60,8 @@ class GameView(arcade.View):
         except InvalidMapFileException as e:
             print(f"Map file error: {e.message}")
             exit()
-        self.__map.initialize_navmesh(1)
+
+        self.__map.initialize_navmesh(3)
 
         self.__sounds = {
             "collect_crystal":       arcade.load_sound(":resources:sounds/coin5.wav", streaming=False),
@@ -76,9 +77,9 @@ class GameView(arcade.View):
         self.__world_width  = self.__map.width  * TILE_SIZE
         self.__world_height = self.__map.height * TILE_SIZE
 
-        self.__pressed_keys       = [False, False, False, False]
-        self.__show_hitboxes      = False
-        self.__show_navmesh       = False
+        self.__pressed_keys = [False, False, False, False]
+        self.__show_hitboxes = False
+        self.__show_navmesh  = False
         self.__player_is_invicible = False
 
         self.place_sprites()
@@ -106,13 +107,11 @@ class GameView(arcade.View):
         self.__switches     = arcade.SpriteList(use_spatial_hash=True)
         self.__gates        = arcade.SpriteList(use_spatial_hash=True)
 
-        self.__player_died = False
-
         for cell_j in range(self.__map.height):
             for cell_i in range(self.__map.width):
                 cell_x: int = self.__map.i_to_x(cell_i)
                 cell_y: int = self.__map.j_to_y(cell_j)
-                cell = self.__map.get(cell_i, cell_j)
+                cell: GridCell = self.__map.get(cell_i, cell_j)
 
                 if cell != GridCell.HOLE:
                     self.__grounds.append(arcade.Sprite(
@@ -132,8 +131,8 @@ class GameView(arcade.View):
                             center_x=cell_x, center_y=cell_y
                         )
                         # custom defined hitbox; feels better and doesnt look worse
-                        bush.hit_box = arcade.hitbox.HitBox(((-7.0, -8.0), (7.0, -8.0),
-                                                             (7.0, 8.0), (-7.0, 8.0)),
+                        bush.hit_box = arcade.hitbox.HitBox(((-7.0, -7.0), (7.0, -7.0),
+                                                             (7.0, 7.0), (-7.0, 7.0)),
                                                               position=(cell_x, cell_y),
                                                               scale=(SCALE, SCALE))
                         self.__walls.append(bush)
@@ -199,9 +198,11 @@ class GameView(arcade.View):
 
                     case GridCell.SWITCH:
                         pass
+                        # switches are added later
 
                     case GridCell.GATE:
                         pass
+                        # gates are added later
 
                     case _:
                         assert_never(cell)
@@ -266,15 +267,17 @@ class GameView(arcade.View):
 
         with self.__camera.activate():
             self.__grounds.draw()
-            self.__collectables.draw()
             self.__holes.draw()
-            self.__walls.draw()
+            self.__collectables.draw()
             self.__switches.draw()
             self.__gates.draw()
             self.__monsters.draw()
-
             if self.__current_weapon is None or not self.__current_weapon.visible or isinstance(self.__current_weapon, Boomerang):
                 self.__players.draw()
+            self.__walls.draw()
+
+
+
 
             if self.__current_weapon is not None and self.__current_weapon.visible:
                 arcade.draw_sprite(self.__current_weapon)
@@ -397,7 +400,8 @@ class GameView(arcade.View):
                     self.__current_weapon.use()
 
             case arcade.key.ESCAPE:
-                self.window.show_view(GameView(self.path_to_map_file))
+                self.__player_is_invicible = False
+                self.kill_player()
 
             case arcade.key.H:
                 self.__show_hitboxes = not self.__show_hitboxes
@@ -408,10 +412,14 @@ class GameView(arcade.View):
 
     def on_key_release(self, symbol: int, modifiers: int) -> None:
         match symbol:
-            case arcade.key.UP   | arcade.key.W: self.__pressed_keys[0] = False
-            case arcade.key.DOWN | arcade.key.S: self.__pressed_keys[1] = False
-            case arcade.key.LEFT | arcade.key.A: self.__pressed_keys[2] = False
-            case arcade.key.RIGHT| arcade.key.D: self.__pressed_keys[3] = False
+            case arcade.key.UP   | arcade.key.W:
+                self.__pressed_keys[0] = False
+            case arcade.key.DOWN | arcade.key.S:
+                self.__pressed_keys[1] = False
+            case arcade.key.LEFT | arcade.key.A:
+                self.__pressed_keys[2] = False
+            case arcade.key.RIGHT| arcade.key.D:
+                self.__pressed_keys[3] = False
 
     def on_update(self, delta_time: float) -> None:
         if self.__remaining_crystals > 0:
@@ -439,10 +447,11 @@ class GameView(arcade.View):
                 if monster.can_see_player:
                     monster.last_seen_player = self.__player.center
 
+        # collect collectable
         for collectable in arcade.check_for_collision_with_list(self.__player, self.__collectables):
             collectable.remove_from_sprite_lists()
             if collectable.id in self.__weapon_id_mapping:
-                weapon = self.__weapon_id_mapping[collectable.id]
+                weapon: Weapon = self.__weapon_id_mapping[collectable.id]
                 arcade.play_sound(self.__sounds["collect_weapon"])
                 assert weapon not in self.__weapons
                 self.__weapons.append(weapon)
@@ -501,7 +510,7 @@ class GameView(arcade.View):
                                 self.__boomerang.reset()
                                 if len(self.__weapons) > 0:
                                     self.__current_weapon = self.__weapons[0]
-                                    self.__current_weapon.hit_something = True
+                                    self.__current_weapon.hit_something = False
                                 else:
                                     self.__current_weapon = None
 

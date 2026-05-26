@@ -1,9 +1,13 @@
-# Projet xaxa lulu #
-## Objectifs: ##
-* Recevoir une offre de Nintendo
-* Dire non a cette offre
-* Recevoir une offre plus haute de Nintendo (ou concurrent)
-* Dire oui
-* Acheter 500 PS5
+# Legend of Xaxa
 
-Xavier tu dois clone ce repo sur ta machine
+Collect all the crystals !
+
+## Controls
+- Movement: WASD or arrow keys
+- Attack: Spacebar
+- Change weapon: R
+- Restart: Escape
+### Special controls
+- Show hitboxes: H
+- Show navmesh: N
+- Become invincible: I

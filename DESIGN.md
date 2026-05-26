@@ -64,3 +64,15 @@ Dans la méthode `on_update(self) -> None`, appelée à chaque frame, se déroul
 On y fait par exemple bouger les entités, vérifier les collisions entre joueur et monstre, etc.
 Cette méthode met à jour les éléments internes du jeu mais il faut également dessiner tout ce qu'il se passe.
 On a donc la méthode `on_draw(self) -> None` aussi appelée à chaque frame qui dessine les sprites, ainsi que les éléments "GUI" du jeu.
+
+# Analyse de performances
+## Chargement de map
+On choisi comme variable ici la resolution du navmesh. <br>
+Si on pose n la resolution du navmesh, chaque cellule aura au maximum n² noeuds.
+Dans le code d'initialisation du navmesh (le seul pertinent ici), on itère sur chaque case de la cellule.
+Ceci n'est pas pertinent puisque le nombre de case ne dépend pas de la resolution.
+Ensuite on itère, pour chaque cellule, sur chaque noeud potentiel dans la cellule (au maximum n²).
+Ceci nous donne une compléxité de O(n²).
+Il reste des boucles à l'intérieur mais elles sont de tailles constantes et donc n'influence pas la compléxité.
+
+## Execution de `on_update`

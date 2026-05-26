@@ -1,4 +1,3 @@
-from py import path
 from dataclasses import dataclass
 from typing import Final
 import arcade
@@ -25,11 +24,8 @@ class Entity(arcade.TextureAnimationSprite):
         super().__init__(start_x, start_y, SCALE, animation)
         self.direction = direction
         self.__speed = speed
-
-        self.__random_tick_range = (1200, 1800) # 20 to 30 secs
-        self.__tick_counter = 0
-        self.__tick_limit = random.randint(self.__random_tick_range[0], self.__random_tick_range[1])
         self.id = id
+
     def move(self) -> None:
         self.change_x = self.direction.x * self.__speed
         self.change_y = self.direction.y * self.__speed
@@ -69,14 +65,15 @@ class Player(Entity):
             animation_set = [ANIMATION_PLAYER_IDLE_UP, ANIMATION_PLAYER_IDLE_DOWN, ANIMATION_PLAYER_IDLE_LEFT, ANIMATION_PLAYER_IDLE_RIGHT]
         else:
             animation_set = [ANIMATION_PLAYER_RUN_UP, ANIMATION_PLAYER_RUN_DOWN, ANIMATION_PLAYER_RUN_LEFT, ANIMATION_PLAYER_RUN_RIGHT]
-        if self.facing_direction == arcade.Vec2(0, 1):
-            self.animation = animation_set[0]
-        if self.facing_direction == arcade.Vec2(0, -1):
-            self.animation = animation_set[1]
-        if self.facing_direction == arcade.Vec2(-1, 0):
-            self.animation = animation_set[2]
-        if self.facing_direction == arcade.Vec2(1, 0):
-            self.animation = animation_set[3]
+        match self.facing_direction:
+            case arcade.Vec2(0, 1):
+                self.animation = animation_set[0]
+            case arcade.Vec2(0, -1):
+                self.animation = animation_set[1]
+            case arcade.Vec2(-1, 0):
+                self.animation = animation_set[2]
+            case arcade.Vec2(1, 0):
+                self.animation = animation_set[3]
 
 class Monster(Entity):
     bottom_left_boundary: Final[arcade.Vec2]
@@ -113,7 +110,7 @@ class Monster(Entity):
         self._is_stunned = True
 
     def stunned_move(self) -> None:
-        if self._stun_timer < 10: # knockback portion
+        if self._stun_timer < 8: # knockback portion
             self.change_x = self.direction.x * STUN_KNOCKBACK_SPEED
             self.change_y = self.direction.y * STUN_KNOCKBACK_SPEED
             self.center = self.center + arcade.Vec2(self.change_x, self.change_y)
@@ -171,14 +168,14 @@ class Spinner(Monster):
 
     def move(self) -> None:
         if self.reached_target():
-            if self.target == self.bottom_left_boundary:
+            if self._target == self.bottom_left_boundary:
                 self._target = self.top_right_boundary
             else:
                 self._target = self.bottom_left_boundary
         super().move()
 
     def stunned_move(self) -> None:
-        if self._stun_timer >= 162:
+        if self._stun_timer >= 160:
             self._is_stunned = False
             self._stun_timer = 0
 
@@ -232,7 +229,7 @@ class Blob(Monster):
                 self.__path_index = 0
 
         if self.reached_target(0.4):
-            self.center = self.target
+            self.center = self._target
             self.__path_index += 1
 
         self._target = self._path_to_target[self.__path_index]
@@ -321,14 +318,15 @@ class Sword(Weapon):
             self.center = self.owner.center + 10 * self.direction
             if self.__previous_direction != self.direction:
                 # change texture direction
-                if self.direction == arcade.Vec2(0, 1):
-                    self.animation = ANIMATION_SWORD_UP
-                if self.direction == arcade.Vec2(0, -1):
-                    self.animation = ANIMATION_SWORD_DOWN
-                if self.direction == arcade.Vec2(-1, 0):
-                    self.animation = ANIMATION_SWORD_LEFT
-                if self.direction == arcade.Vec2(1, 0):
-                    self.animation = ANIMATION_SWORD_RIGHT
+                match self.direction:
+                    case arcade.Vec2(0, 1):
+                        self.animation = ANIMATION_SWORD_UP
+                    case arcade.Vec2(0, -1):
+                        self.animation = ANIMATION_SWORD_DOWN
+                    case arcade.Vec2(-1, 0):
+                        self.animation = ANIMATION_SWORD_LEFT
+                    case arcade.Vec2(1, 0):
+                        self.animation = ANIMATION_SWORD_RIGHT
 
         elif self._state == 1: # active
             self.update_animation()
@@ -339,10 +337,8 @@ class Sword(Weapon):
                 self.time =  0
 
 
-
 class Sceptre(Weapon):
     _previous_direction: arcade.Vec2
-    __timer: int
     def __init__(self, owner: Player) -> None:
         super().__init__(owner, 0, ANIMATION_SWORD_UP, "sceptre")
 
@@ -353,14 +349,15 @@ class Sceptre(Weapon):
             self.center = self.owner.center
             if self.__previous_direction != self.direction:
                 # change texture direction
-                if self.direction == arcade.Vec2(0, 1):
-                    self.animation = ANIMATION_SWORD_UP
-                if self.direction == arcade.Vec2(0, -1):
-                    self.animation = ANIMATION_SCEPTRE_DOWN
-                if self.direction == arcade.Vec2(-1, 0):
-                    self.animation = ANIMATION_SCEPTRE_LEFT
-                if self.direction == arcade.Vec2(1, 0):
-                    self.animation = ANIMATION_SCEPTRE_RIGHT
+                match self.direction:
+                    case arcade.Vec2(0, 1):
+                        self.animation = ANIMATION_SCEPTRE_UP
+                    case arcade.Vec2(0, -1):
+                        self.animation = ANIMATION_SCEPTRE_DOWN
+                    case arcade.Vec2(-1, 0):
+                        self.animation = ANIMATION_SCEPTRE_LEFT
+                    case arcade.Vec2(1, 0):
+                        self.animation = ANIMATION_SCEPTRE_RIGHT
         else:
             self.update_animation()
             # block player movements
@@ -452,8 +449,9 @@ class Gate(arcade.Sprite):
                 if switch.id == condition["switch_is_on"]:
                     return switch.state
         return False
+
     def tick(self) -> None:
-        self.state =  self.evaluate(self.__open_condition)
+        self.state = self.evaluate(self.__open_condition)
         if self.state:
             self.texture = TEXTURE_GATE_OPEN
         else:
