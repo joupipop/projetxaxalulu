@@ -42,8 +42,8 @@ class Player(Entity):
         self.facing_direction = arcade.Vec2(0, -1)
         self.__previous_direction = arcade.Vec2(0, -1)
 
-    def input(self, pressed_keys: list[bool]) -> None:
-        self.direction = arcade.Vec2(pressed_keys[3] - pressed_keys[2], pressed_keys[0] - pressed_keys[1])
+    def input(self, pressed_keys: dict[str, bool]) -> None:
+        self.direction = arcade.Vec2(pressed_keys["left"] - pressed_keys["right"], pressed_keys["up"] - pressed_keys["down"])
 
     def move(self) -> None:
         animation_set: list[arcade.TextureAnimation]
@@ -91,9 +91,7 @@ class Monster(Entity):
         self._is_stunned = False
         self._stun_timer = 0
         self.draw_position = draw_position
-    @property
-    def target(self) -> arcade.Vec2: # used in debug mode
-        return self._target
+
     def reached_target(self, distance: int | float = 5) -> bool:
         return (self.center-self._target).length() <= distance
 

@@ -67,7 +67,7 @@ On a donc la méthode `on_draw(self) -> None` aussi appelée à chaque frame qui
 
 # Analyse de performances
 ## Chargement de map
-On choisi comme variable ici la resolution du navmesh. <br>
+On choisi ici comme variable la resolution du navmesh. <br>
 Si on pose n la resolution du navmesh, chaque cellule aura au maximum n² noeuds.
 Dans le code d'initialisation du navmesh (le seul pertinent ici), on itère sur chaque case de la cellule.
 Ceci n'est pas pertinent puisque le nombre de case ne dépend pas de la resolution.
@@ -76,3 +76,7 @@ Ceci nous donne une compléxité de O(n²).
 Il reste des boucles à l'intérieur mais elles sont de tailles constantes et donc n'influence pas la compléxité.
 
 ## Execution de `on_update`
+On choisi ici comme variable le nombre de monstres. <br>
+Dans la methode on update, on itère souvent sur les monstres avec des boucles du type:<br>
+`for monster in self.__monsters` ou des appels à `check_for_collision_with_list`.
+La compléxité du premier est bien evidémment O(n). Pour la deuxième, aller lire le code source ne nous a pas aidé et donc on estime consérvativement que c'est aussi du O(n). Les itérations sur les monstres, bien que nombreuse, n'augmentent pas en nombre avec la quantité de monstres. Donc on obtient comme compléxité finale, O(n)

@@ -1,6 +1,5 @@
 import pytest
 from textwrap import dedent
-from pytiled_parser import Grid
 from tests.test_entities import GridCell, InvalidMapFileException
 import map
 from constants import TILE_SIZE

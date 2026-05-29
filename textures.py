@@ -140,7 +140,7 @@ BAT_ANIMATION: Final[arcade.TextureAnimation] = \
     _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Enemies_Sprites/Pinkbat_Sprites/pinkbat_idle_left_anim_strip_5.png" , 3)
 
 BLOB_ANIMATION:  Final[arcade.TextureAnimation] = \
-    _load_animation_strip("/home/lukan/EPFL/BA2/projets/projetxaxalulu/assets/Top_Down_Adventure_Pack_v.1.0/Enemies_Sprites/Pinkslime_Sprites/pinkslime_run_anim_anim_all_dir_strip_6.png" , 6)
+    _load_animation_strip("assets/Top_Down_Adventure_Pack_v.1.0/Enemies_Sprites/Pinkslime_Sprites/pinkslime_run_anim_anim_all_dir_strip_6.png" , 6)
 
 TEXTURE_SWITCH_OPEN: Final[arcade.Texture] = _load_grid("assets/added/switch-open.png", 1, 1)[0]
 TEXTURE_SWITCH_CLOSED: Final[arcade.Texture] = _load_grid("assets/added/switch-closed.png", 1, 1)[0]

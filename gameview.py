@@ -16,12 +16,11 @@ class GameView(arcade.View):
     __world_height: Final[int]
 
     __map: Map
-    path_to_map_file: Final[str]
     __player: Player
     __players: arcade.SpriteList[arcade.TextureAnimationSprite]
 
     __collectables: arcade.SpriteList[Entity]
-    __remaining_crystals: int
+    _remaining_crystals: int
 
     __sword_item: arcade.SpriteList[Entity]
     __boomerang_item: arcade.SpriteList[Entity]
@@ -42,7 +41,7 @@ class GameView(arcade.View):
     __physics_engine: arcade.PhysicsEngineSimple
     __camera: arcade.camera.Camera2D
 
-    __pressed_keys: list[bool]
+    __pressed_keys: Final[dict[str, bool]]
     __theme_music: pyglet.media.Player | None
 
     __show_hitboxes: bool
@@ -51,16 +50,11 @@ class GameView(arcade.View):
 
     __timer: float
 
-    def __init__(self, path_to_map_file: str) -> None:
+    def __init__(self, map: Map) -> None:
         super().__init__()
-        self.path_to_map_file = path_to_map_file
         self.background_color = arcade.csscolor.CORNFLOWER_BLUE
-        try:
-            self.__map = load_map_from_file(self.path_to_map_file)
-        except InvalidMapFileException as e:
-            print(f"Map file error: {e.message}")
-            exit()
 
+        self.__map = map
         self.__map.initialize_navmesh(3)
 
         self.__sounds = {
@@ -77,7 +71,7 @@ class GameView(arcade.View):
         self.__world_width  = self.__map.width  * TILE_SIZE
         self.__world_height = self.__map.height * TILE_SIZE
 
-        self.__pressed_keys = [False, False, False, False]
+        self.__pressed_keys = {"up": False, "down": False, "right": False, "left": False}
         self.__show_hitboxes = False
         self.__show_navmesh  = False
         self.__player_is_invicible = False
@@ -246,7 +240,7 @@ class GameView(arcade.View):
             player_sprite=self.__player,
             walls=self.__walls
         )
-        self.__remaining_crystals = len([c for c in self.__collectables if c.id == "crystal"])
+        self._remaining_crystals = len([c for c in self.__collectables if c.id == "crystal"])
         self.__monsters.sort(key=lambda m: m.draw_position)
         self.__timer = 0
 
@@ -268,16 +262,13 @@ class GameView(arcade.View):
         with self.__camera.activate():
             self.__grounds.draw()
             self.__holes.draw()
+            self.__walls.draw()
             self.__collectables.draw()
             self.__switches.draw()
             self.__gates.draw()
             self.__monsters.draw()
             if self.__current_weapon is None or not self.__current_weapon.visible or isinstance(self.__current_weapon, Boomerang):
                 self.__players.draw()
-            self.__walls.draw()
-
-
-
 
             if self.__current_weapon is not None and self.__current_weapon.visible:
                 arcade.draw_sprite(self.__current_weapon)
@@ -381,13 +372,13 @@ class GameView(arcade.View):
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         match symbol:
             case arcade.key.UP | arcade.key.W:
-                self.__pressed_keys[0] = True
+                self.__pressed_keys["up"] = True
             case arcade.key.DOWN | arcade.key.S:
-                self.__pressed_keys[1] = True
+                self.__pressed_keys["down"] = True
             case arcade.key.LEFT | arcade.key.A:
-                self.__pressed_keys[2] = True
+                self.__pressed_keys["right"] = True
             case arcade.key.RIGHT | arcade.key.D:
-                self.__pressed_keys[3] = True
+                self.__pressed_keys["left"] = True
 
             case arcade.key.R:
                 if self.__current_weapon is not None and not self.__current_weapon.active:
@@ -413,16 +404,16 @@ class GameView(arcade.View):
     def on_key_release(self, symbol: int, modifiers: int) -> None:
         match symbol:
             case arcade.key.UP   | arcade.key.W:
-                self.__pressed_keys[0] = False
+                self.__pressed_keys["up"] = False
             case arcade.key.DOWN | arcade.key.S:
-                self.__pressed_keys[1] = False
+                self.__pressed_keys["down"] = False
             case arcade.key.LEFT | arcade.key.A:
-                self.__pressed_keys[2] = False
+                self.__pressed_keys["right"] = False
             case arcade.key.RIGHT| arcade.key.D:
-                self.__pressed_keys[3] = False
+                self.__pressed_keys["left"] = False
 
     def on_update(self, delta_time: float) -> None:
-        if self.__remaining_crystals > 0:
+        if self._remaining_crystals > 0:
             self.__timer += delta_time
 
         self.__player.input(self.__pressed_keys)
@@ -459,7 +450,7 @@ class GameView(arcade.View):
             elif collectable.id == "crystal":
                 arcade.play_sound(self.__sounds["collect_crystal"])
                 self.__player.crystal_count += 1
-                self.__remaining_crystals -= 1
+                self._remaining_crystals -= 1
 
         if self.__current_weapon is not None and self.__current_weapon.active:
             for switch in arcade.check_for_collision_with_list(self.__current_weapon, self.__switches):
