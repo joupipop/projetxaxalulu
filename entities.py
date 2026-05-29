@@ -43,7 +43,7 @@ class Player(Entity):
         self.__previous_direction = arcade.Vec2(0, -1)
 
     def input(self, pressed_keys: dict[str, bool]) -> None:
-        self.direction = arcade.Vec2(pressed_keys["left"] - pressed_keys["right"], pressed_keys["up"] - pressed_keys["down"])
+        self.direction = arcade.Vec2(pressed_keys["right"] - pressed_keys["left"], pressed_keys["up"] - pressed_keys["down"])
 
     def move(self) -> None:
         animation_set: list[arcade.TextureAnimation]

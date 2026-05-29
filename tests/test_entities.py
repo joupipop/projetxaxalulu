@@ -6,10 +6,10 @@ from entities import *
 def test_input_up_and_left() -> None:
     player: Player = Player(0, 0)
     player.input({"up": True, "down": False, "right": True, "left": False})
-    assert player.direction == arcade.Vec2(-1, 1)
+    assert player.direction == arcade.Vec2(1, 1)
 
     player.input({"up": False, "down": True, "right": False, "left": True})
-    assert player.direction == arcade.Vec2(1, -1)
+    assert player.direction == arcade.Vec2(-1, -1)
     player.input({"up": False, "down": False, "right": False, "left": False})
     assert player.direction == arcade.Vec2(0, 0)
 
