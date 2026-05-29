@@ -8,7 +8,6 @@ from textures import *
 from entities import *
 from map import Map, GridCell, NavMeshNode, load_map_from_file, InvalidMapFileException
 
-
 class GameView(arcade.View):
     """Main in-game view."""
 
@@ -17,38 +16,41 @@ class GameView(arcade.View):
 
     __map: Map
     __player: Player
-    __players: arcade.SpriteList[arcade.TextureAnimationSprite]
+    __timer: float
 
-    __collectables: arcade.SpriteList[Entity]
     _remaining_crystals: int
+
+    __players: arcade.SpriteList[arcade.TextureAnimationSprite]
+    __collectables: arcade.SpriteList[Entity]
+    __monsters: arcade.SpriteList[Monster]
+    __grounds: arcade.SpriteList[arcade.Sprite]
+    __walls: arcade.SpriteList[arcade.Sprite]
+    __holes: arcade.SpriteList[arcade.Sprite]
+    __switches: arcade.SpriteList[Switch]
+    __gates: arcade.SpriteList[Gate]
 
     __sword_item: arcade.SpriteList[Entity]
     __boomerang_item: arcade.SpriteList[Entity]
     __sceptre_item: arcade.SpriteList[Entity]
 
-    __monsters: arcade.SpriteList[Monster]
-
-    __grounds: arcade.SpriteList[arcade.Sprite]
-    __walls: arcade.SpriteList[arcade.Sprite]
-    __holes: arcade.SpriteList[arcade.Sprite]
-
-    __switches: arcade.SpriteList[Switch]
-    __gates: arcade.SpriteList[Gate]
-
     __weapons: list[Weapon]
     __current_weapon: Weapon | None
+    __sword: Sword
+    __boomerang: Boomerang
+    __sceptre: Sceptre
 
     __physics_engine: arcade.PhysicsEngineSimple
     __camera: arcade.camera.Camera2D
+    __gui_camera: arcade.camera.Camera2D
 
     __pressed_keys: Final[dict[str, bool]]
+
+    __sounds: dict[str, Sound]
     __theme_music: pyglet.media.Player | None
 
     __show_hitboxes: bool
     __show_navmesh: bool
     __player_is_invicible: bool
-
-    __timer: float
 
     def __init__(self, map: Map) -> None:
         super().__init__()
@@ -90,8 +92,9 @@ class GameView(arcade.View):
             loop=True
         )
 
-
+    # place sprites (also used after death)
     def place_sprites(self) -> None:
+        # recreate sprite lists
         self.__players      = arcade.SpriteList()
         self.__collectables = arcade.SpriteList()
         self.__monsters     = arcade.SpriteList()
@@ -101,6 +104,7 @@ class GameView(arcade.View):
         self.__switches     = arcade.SpriteList(use_spatial_hash=True)
         self.__gates        = arcade.SpriteList(use_spatial_hash=True)
 
+        # iterate over map
         for cell_j in range(self.__map.height):
             for cell_i in range(self.__map.width):
                 cell_x: int = self.__map.i_to_x(cell_i)
@@ -112,7 +116,7 @@ class GameView(arcade.View):
                         path_or_texture=TEXTURE_GRASS,
                         scale=SCALE,
                         center_x=cell_x, center_y=cell_y
-                    ))
+                    )) # every non-hole cell has grass under it
 
                 match cell:
                     case GridCell.GRASS:
@@ -192,11 +196,11 @@ class GameView(arcade.View):
 
                     case GridCell.SWITCH:
                         pass
-                        # switches are added later
+                        # switches are added below
 
                     case GridCell.GATE:
                         pass
-                        # gates are added later
+                        # gates are added below
 
                     case _:
                         assert_never(cell)
@@ -273,6 +277,7 @@ class GameView(arcade.View):
             if self.__current_weapon is not None and self.__current_weapon.visible:
                 arcade.draw_sprite(self.__current_weapon)
 
+            # debug overlay
             if self.__show_navmesh:
                 nodes: list[NavMeshNode] = list(self.__map.navmesh.nodes)
                 for node in nodes:
@@ -327,7 +332,7 @@ class GameView(arcade.View):
                         arcade.rect.XYWH(monster._target.x, monster._target.y, 16, 16),
                         (255, 100, 100, 75)
                     )
-
+        # HUD
         with self.__gui_camera.activate():
             cursor_index: int = 20
 
@@ -376,9 +381,9 @@ class GameView(arcade.View):
             case arcade.key.DOWN | arcade.key.S:
                 self.__pressed_keys["down"] = True
             case arcade.key.LEFT | arcade.key.A:
-                self.__pressed_keys["right"] = True
-            case arcade.key.RIGHT | arcade.key.D:
                 self.__pressed_keys["left"] = True
+            case arcade.key.RIGHT | arcade.key.D:
+                self.__pressed_keys["right"] = True
 
             case arcade.key.R:
                 if self.__current_weapon is not None and not self.__current_weapon.active:
@@ -408,9 +413,9 @@ class GameView(arcade.View):
             case arcade.key.DOWN | arcade.key.S:
                 self.__pressed_keys["down"] = False
             case arcade.key.LEFT | arcade.key.A:
-                self.__pressed_keys["right"] = False
-            case arcade.key.RIGHT| arcade.key.D:
                 self.__pressed_keys["left"] = False
+            case arcade.key.RIGHT| arcade.key.D:
+                self.__pressed_keys["right"] = False
 
     def on_update(self, delta_time: float) -> None:
         if self._remaining_crystals > 0:
